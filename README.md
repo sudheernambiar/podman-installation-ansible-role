@@ -118,5 +118,4 @@ Firewalld has to be opened in each case.
 if a service is depend on anther service, we can use the following command to make sure the dependancy is available.
 ```sh
 $podman generate systemd --requires=<name_of_dependent_service_to_start_before> --new <new service> -f
---requires=
 ```
