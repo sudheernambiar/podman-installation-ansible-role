@@ -1,0 +1,6 @@
+-
+  name: "Podman installation"
+  hosts: all
+  remote_user: ck
+  roles:
+    - podman

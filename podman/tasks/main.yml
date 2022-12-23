@@ -1,0 +1,86 @@
+---
+# tasks file for podman
+- name: "Installed EPEL Repo for RHEL8"
+  dnf:
+    name: epel-release
+    state: latest
+  notify:
+    - Remove epel
+  become: yes
+- name: "Installed podman, podman-compose and podman-docker"
+  dnf:
+    name:
+      - podman
+      - podman-docker
+      - podman-compose
+  become: yes
+- name: Print all available facts
+  debug:
+    var: ansible_facts
+
+- name: "Created directories needed for cgroupfs config"
+  file:
+    path: ~/.config/containers/
+    state: directory
+    mode: '0755'
+- name: "copied cgroupfs configuration"
+  copy:
+    src: cgroupfs
+    dest: ~/.config/containers/containers.conf
+- name: "geneated environment for podman initial configurations"
+  raw: podman ps
+
+- name: "Created SELinux configuration for the user"
+  shell:
+    cmd: semanage fcontext -a -e /var/lib/containers {{ ansible_facts['env']['HOME'] }}/.local/share/containers
+  become: yes
+- name: "Restored SELinux configuration"
+  shell:
+    cmd: restorecon -R -v {{ ansible_facts['env']['HOME'] }}/.local/share/containers
+  become: yes
+
+- name: "Replaced default OCI Image library to docker.io"
+  replace:
+    path: /etc/containers/registries.conf
+    regexp: '(^unqualified-search-registries\s=\s)(.*)$'
+    replace: '\1["docker.io"]'
+    backup: yes
+  become: yes
+
+- name: "Restarted and enabled podman service"
+  service:
+    name: podman
+    state: restarted
+    enabled: yes
+  become: yes
+
+- name: "Restarted and enabled temp file system"
+  service:
+    name: tmp.mount
+    state: restarted
+    enabled: yes
+  become: yes
+
+- name: "Activated normal user lingering"
+  raw: loginctl enable-linger {{ ansible_facts['env']['LOGNAME'] }}
+  become: yes
+
+- name: "created podman system renumbering"
+  raw: podman system renumber
+  become: yes
+
+#- name: "Environment file exported"
+#  shell:
+#    cmd: echo "export XDG_RUNTIME_DIR=/run/user/`id -u`" >> ~/.bashrc ; source ~/.bashrc
+
+- name: "Environment 'XDG_RUNTIME_DIR'  file exported"
+  lineinfile:
+    path: .bashrc
+    line: export XDG_RUNTIME_DIR=/run/user/`id -u` 
+
+- name: "Created directories for service files to reside"
+  file:
+    path: ~/.config/systemd/user/
+    state: directory
+    mode: '0755'
+

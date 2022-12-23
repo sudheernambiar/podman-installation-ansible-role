@@ -1,0 +1,7 @@
+---
+# handlers file for podman
+- name: "Remove epel"
+  dnf:
+      name: epel-release
+      state: absent
+  become: yes
